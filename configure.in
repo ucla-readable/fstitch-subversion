@@ -265,7 +265,7 @@ AC_ARG_WITH(opgroup-lib,
     OPGROUP_LIB="-L$withval", OPGROUP_LIB=)
 LIBOPGROUP_CPPFLAGS="$OPGROUP_INC"
 LIBOPGROUP_LIBS="$OPGROUP_LIB -lopgroup"
-save_cppflags="$CFLAGS"
+save_cppflags="$CPPFLAGS"
 CPPFLAGS="$CPPFLAGS $LIBOPGROUP_CPPFLAGS"
 AC_CHECK_HEADER([kfs/opgroup.h], , AC_MSG_ERROR([could not find opgroup.h]))
 CPPFLAGS="$save_cppflags"
