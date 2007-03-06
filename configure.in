@@ -254,6 +254,25 @@ AC_DEFINE_UNQUOTED(SVN_FS_WANT_DB_MINOR, $SVN_FS_WANT_DB_MINOR,
 AC_DEFINE_UNQUOTED(SVN_FS_WANT_DB_PATCH, $SVN_FS_WANT_DB_PATCH,
                    [The desired patch version for the Berkeley DB])
 
+# opgroups
+AC_ARG_WITH(opgroup-inc,
+    AS_HELP_STRING([--with-opgroup-inc=PATH],
+        [Specify the path to the directory containing kfs/opgroup.h]),
+    OPGROUP_INC="-I$withval", OPGROUP_INC=)
+AC_ARG_WITH(opgroup-lib,
+    AS_HELP_STRING([--with-opgroup-lib=PATH],
+        [Specify the path to the directory containing libopgroup.so]),
+    OPGROUP_LIB="-L$withval", OPGROUP_LIB=)
+LIBOPGROUP_CPPFLAGS="$OPGROUP_INC"
+LIBOPGROUP_LIBS="$OPGROUP_LIB -lopgroup"
+save_cppflags="$CFLAGS"
+CPPFLAGS="$CPPFLAGS $LIBOPGROUP_CPPFLAGS"
+AC_CHECK_HEADER([kfs/opgroup.h], , AC_MSG_ERROR([could not find opgroup.h]))
+CPPFLAGS="$save_cppflags"
+AC_CHECK_LIB([opgroup], [opgroup_create], , AC_MSG_ERROR([could not link against opgroup library]), ${LIBOPGROUP_LIBS})
+AC_SUBST([LIBOPGROUP_CPPFLAGS])
+LIBS="$LIBS $LIBOPGROUP_LIBS"
+
 dnl Mac OS KeyChain -------------------
 
 AC_ARG_ENABLE(keychain,

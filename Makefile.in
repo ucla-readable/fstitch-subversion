@@ -136,7 +136,7 @@ CFLAGS = @CFLAGS@ $(EXTRA_CFLAGS)
 ### A few of the CFLAGS (e.g. -Wmissing-prototypes, -Wstrict-prototypes,
 ### -Wmissing-declarations) are not valid for C++, and should be somehow
 ### suppressed (but they may come from httpd or APR).
-CPPFLAGS = @CPPFLAGS@ $(EXTRA_CPPFLAGS)
+CPPFLAGS = @CPPFLAGS@ @LIBOPGROUP_CPPFLAGS@ $(EXTRA_CPPFLAGS)
 LDFLAGS = @LDFLAGS@ $(EXTRA_LDFLAGS)
 
 COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES)
