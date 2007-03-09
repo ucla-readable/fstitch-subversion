@@ -20,6 +20,7 @@
 #ifndef SVN_LIBSVN_WC_ENTRIES_H
 #define SVN_LIBSVN_WC_ENTRIES_H
 
+#include <kfs/opgroup.h>
 #include <apr_pools.h>
 #include "svn_types.h"
 
@@ -101,6 +102,12 @@ svn_error_t *svn_wc__entries_write(apr_hash_t *entries,
                                    svn_wc_adm_access_t *adm_access,
                                    apr_pool_t *pool);
 
+/* svn_wc__entries_write and if og then rename will depend on *og and
+ * will set *og to the rename's opgroup. */
+svn_error_t *svn_wc__entries_write_og(apr_hash_t *entries,
+                                      svn_wc_adm_access_t *adm_access,
+                                      opgroup_id_t *og,
+                                      apr_pool_t *pool);
 
 /* Set *NEW_ENTRY to a new entry, taking attributes from ATTS, whose
    keys and values are both char *.  Allocate the entry and copy

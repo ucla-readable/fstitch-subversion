@@ -18,6 +18,7 @@
 
 
 
+#include <assert.h>
 #include <string.h>
 
 #include <apr_pools.h>
@@ -191,6 +192,13 @@ struct log_runner
      This is initialized to 0 when the log_runner is created, and
      incremented every time start_handler() is called. */
   int count;
+
+  /* All log run changes depend on before_og. */
+  opgroup_id_t before_og;
+  /* The current engaged log run opgroup. */
+  opgroup_id_t current_og;
+  /* Depends on all log run changes. */
+  opgroup_id_t after_og;
 };
 
 
@@ -248,10 +256,12 @@ file_xfer_under_path(svn_wc_adm_access_t *adm_access,
                      enum svn_wc__xfer_action action,
                      svn_boolean_t special_only,
                      svn_boolean_t rerun,
+                     struct log_runner *loggy,
                      apr_pool_t *pool)
 {
   svn_error_t *err;
   const char *full_from_path, *full_dest_path, *full_versioned_path;
+  int r;
 
   full_from_path = svn_path_join(svn_wc_adm_access_path(adm_access), name,
                                  pool);
@@ -323,8 +333,26 @@ file_xfer_under_path(svn_wc_adm_access_t *adm_access,
       }
 
     case svn_wc__xfer_mv:
+      /* Moves may only be done after any src file uses are on disk.
+       * And it is easier to make the move depend on all prior changes. */
+      r = opgroup_disengage(loggy->current_og);
+      assert(r >= 0);
+      loggy->current_og = opgroup_linear(loggy->current_og);
+      assert(loggy->current_og >= 0);
+      opgroup_label(loggy->current_og, "run log (mv)");
+
       err = svn_io_file_rename(full_from_path,
                                full_dest_path, pool);
+
+      r = opgroup_disengage(loggy->current_og);
+      assert(r >= 0);
+      r = opgroup_add_depend(loggy->after_og, loggy->current_og);
+      assert(r >= 0);
+      r = opgroup_abandon(loggy->current_og);
+      assert(r >= 0);
+      loggy->current_og = opgroup_create_engage(loggy->before_og, -1);
+      assert(loggy->current_og >= 0);
+      opgroup_label(loggy->before_og, "run log (post-mv)");
 
       /* If we got an ENOENT, that's ok;  the move has probably
          already completed in an earlier run of this log.  */
@@ -601,7 +629,7 @@ log_do_file_xfer(struct log_runner *loggy,
                               loggy->pool));
 
   err = file_xfer_under_path(loggy->adm_access, name, dest, versioned,
-                             action, special_only, loggy->rerun, loggy->pool);
+                             action, special_only, loggy->rerun, loggy, loggy->pool);
   if (err)
     signal_error(loggy, err);
 
@@ -1721,6 +1749,7 @@ static svn_error_t *
 run_log(svn_wc_adm_access_t *adm_access,
         svn_boolean_t rerun,
         const char *diff3_cmd,
+        opgroup_id_t last_log_rename_og,
         apr_pool_t *pool)
 {
   svn_error_t *err, *err2;
@@ -1732,6 +1761,7 @@ run_log(svn_wc_adm_access_t *adm_access,
   const char *logfile_path;
   int log_number;
   apr_pool_t *iterpool = svn_pool_create(pool);
+  int r;
 
   /* kff todo: use the tag-making functions here, now. */
   const char *log_start
@@ -1754,6 +1784,17 @@ run_log(svn_wc_adm_access_t *adm_access,
   loggy->rerun = rerun;
   loggy->diff3_cmd = diff3_cmd;
   loggy->count = 0;
+
+  /* Make all log runs depend on all log renames.
+   * We could make log run N depend only on log N rename, but this
+   * would require infrastructure to keep around that opgroup. */
+  loggy->before_og = last_log_rename_og;
+  loggy->current_og = opgroup_create_engage(loggy->before_og, -1);
+  assert(loggy->current_og >= 0);
+  opgroup_label(loggy->current_og, "run log");
+  loggy->after_og = opgroup_create(0);
+  assert(loggy->after_og >= 0);
+  opgroup_label(loggy->after_og, "after log runs");
 
   /* Expat wants everything wrapped in a top-level form, so start with
      a ghost open tag. */
@@ -1803,6 +1844,15 @@ run_log(svn_wc_adm_access_t *adm_access,
       SVN_ERR(svn_io_file_close(f, iterpool));
     }
 
+  r = opgroup_disengage(loggy->current_og);
+  assert(r >= 0);
+  r = opgroup_add_depend(loggy->after_og, loggy->current_og);
+  assert(r >= 0);
+  r = opgroup_abandon(loggy->current_og);
+  assert(r >= 0);
+  loggy->current_og = -1;
+  r = opgroup_release(loggy->after_og);
+  assert(r >= 0);
 
   /* Pacify Expat with a pointless closing element tag. */
   SVN_ERR(svn_xml_parse(parser, log_end, strlen(log_end), 1));
@@ -1818,8 +1868,12 @@ run_log(svn_wc_adm_access_t *adm_access,
   if (loggy->entries_modified == TRUE)
     {
       apr_hash_t *entries;
+      opgroup_id_t og = loggy->after_og;
       SVN_ERR(svn_wc_entries_read(&entries, loggy->adm_access, TRUE, pool));
-      SVN_ERR(svn_wc__entries_write(entries, loggy->adm_access, pool));
+      SVN_ERR(svn_wc__entries_write_og(entries, loggy->adm_access, &og, pool));
+      r = opgroup_abandon(loggy->after_og);
+      assert(r >= 0);
+      loggy->after_og = og;
     }
   if (loggy->wcprops_modified)
     SVN_ERR(svn_wc__wcprops_write(loggy->adm_access, pool));
@@ -1832,6 +1886,8 @@ run_log(svn_wc_adm_access_t *adm_access,
     }
   else
     {
+      opgroup_id_t unlink_prev_og = loggy->after_og;
+      loggy->after_og = -1;
       for (log_number--; log_number >= 0; log_number--)
         {
           svn_pool_clear(iterpool);
@@ -1839,9 +1895,16 @@ run_log(svn_wc_adm_access_t *adm_access,
           
           /* No 'killme'?  Remove the logfile; its commands have been
              executed. */
+          unlink_prev_og = opgroup_linear(unlink_prev_og);
+          assert(unlink_prev_og >= 0);
+		  opgroup_label(unlink_prev_og, "unlink log");
           SVN_ERR(svn_wc__remove_adm_file(svn_wc_adm_access_path(adm_access),
                                           iterpool, logfile_path, NULL));
+          r = opgroup_disengage(unlink_prev_og);
+          assert(r >= 0);
         }
+      r = opgroup_abandon(unlink_prev_og);
+      assert(r >= 0);
     }
 
   svn_pool_destroy(iterpool);
@@ -1854,7 +1917,16 @@ svn_wc__run_log(svn_wc_adm_access_t *adm_access,
                 const char *diff3_cmd,
                 apr_pool_t *pool)
 {
-  return run_log(adm_access, FALSE, diff3_cmd, pool);
+  return run_log(adm_access, FALSE, diff3_cmd, -1, pool);
+}
+
+svn_error_t *
+svn_wc__run_log_og(svn_wc_adm_access_t *adm_access,
+                   const char *diff3_cmd,
+                   opgroup_id_t last_log_rename_og,
+                   apr_pool_t *pool)
+{
+  return run_log(adm_access, FALSE, diff3_cmd, last_log_rename_og, pool);
 }
 
 svn_error_t *
@@ -1862,7 +1934,7 @@ svn_wc__rerun_log(svn_wc_adm_access_t *adm_access,
                   const char *diff3_cmd,
                   apr_pool_t *pool)
 {
-  return run_log(adm_access, TRUE, diff3_cmd, pool);
+  return run_log(adm_access, TRUE, diff3_cmd, -1, pool);
 }
 
 
@@ -2400,13 +2472,15 @@ svn_wc__loggy_upgrade_format(svn_stringbuf_t **log_accum,
 /*** Helper to write log files ***/
 
 svn_error_t *
-svn_wc__write_log(svn_wc_adm_access_t *adm_access,
-                  int log_number, svn_stringbuf_t *log_content,
-                  apr_pool_t *pool)
+svn_wc__write_log_og(svn_wc_adm_access_t *adm_access,
+                     int log_number, svn_stringbuf_t *log_content,
+                     opgroup_id_t data_og, opgroup_id_t old_og,
+                     opgroup_id_t *rename_og, apr_pool_t *pool)
 {
   apr_file_t *log_file;
   const char *logfile_name = svn_wc__logfile_path(log_number, pool);
   const char *adm_path = svn_wc_adm_access_path(adm_access);
+  int r;
 
   SVN_ERR(svn_wc__open_adm_file(&log_file, adm_path, logfile_name,
                                 (APR_WRITE | APR_CREATE), pool));
@@ -2416,11 +2490,49 @@ svn_wc__write_log(svn_wc_adm_access_t *adm_access,
             apr_psprintf(pool, _("Error writing log for '%s'"),
                          svn_path_local_style(logfile_name, pool)));
 
+  if (rename_og)
+  {
+    *rename_og = opgroup_create(0);
+    assert(*rename_og >= 0);
+	opgroup_label(*rename_og, "rename log");
+    if (data_og >= 0)
+    {
+      r = opgroup_disengage(data_og);
+      assert(r >= 0);
+      r = opgroup_add_depend(*rename_og, data_og);
+      assert(r >= 0);
+    }
+    if (old_og >= 0)
+    {
+      r = opgroup_add_depend(*rename_og, old_og);
+      assert(r >= 0);
+    }
+    r = opgroup_release(*rename_og);
+    assert(r >= 0);
+    r = opgroup_engage(*rename_og);
+    assert(r >= 0);
+  }
+
   SVN_ERR(svn_wc__close_adm_file(log_file, adm_path, logfile_name,
                                  TRUE, pool));
 
+  if (rename_og)
+  {
+    r = opgroup_disengage(*rename_og);
+    assert(r >= 0);
+  }
+
   return SVN_NO_ERROR;
 }
+
+svn_error_t *
+svn_wc__write_log(svn_wc_adm_access_t *adm_access,
+                  int log_number, svn_stringbuf_t *log_content,
+                  apr_pool_t *pool)
+{
+  return svn_wc__write_log_og(adm_access, log_number, log_content, -1, -1, NULL, pool);
+}
+
 
 
 /*** Recursively do log things. ***/

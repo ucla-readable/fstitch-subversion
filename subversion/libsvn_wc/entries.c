@@ -1868,15 +1868,18 @@ write_entries_xml(svn_stringbuf_t **output,
 }
                   
 svn_error_t *
-svn_wc__entries_write(apr_hash_t *entries,
-                      svn_wc_adm_access_t *adm_access,
-                      apr_pool_t *pool)
+svn_wc__entries_write_og(apr_hash_t *entries,
+                         svn_wc_adm_access_t *adm_access,
+                         opgroup_id_t *og,
+                         apr_pool_t *pool)
 {
   svn_error_t *err = SVN_NO_ERROR;
   svn_stringbuf_t *bigstr = NULL;
   apr_file_t *outfile = NULL;
   apr_hash_index_t *hi;
   svn_wc_entry_t *this_dir;
+  opgroup_id_t data_og, rename_og;
+  int r;
 
   SVN_ERR(svn_wc__adm_write_check(adm_access));
 
@@ -1899,6 +1902,9 @@ svn_wc__entries_write(apr_hash_t *entries,
    * tags such as SVN_WC__LOG_MV to move entries files so any existing file
    * is not "valuable".
    */
+  data_og = opgroup_create_engage(-1);
+  assert(data_og >= 0);
+  opgroup_label(data_og, "create entries");
   SVN_ERR(svn_wc__open_adm_file(&outfile, 
                                 svn_wc_adm_access_path(adm_access),
                                 SVN_WC__ADM_ENTRIES,
@@ -1946,9 +1952,27 @@ svn_wc__entries_write(apr_hash_t *entries,
                          svn_path_local_style
                          (svn_wc_adm_access_path(adm_access), pool)));
 
+  r = opgroup_disengage(data_og);
+  assert(r >= 0);
+  rename_og = opgroup_create_engage(data_og, og ? *og : -1, -1);
+  assert(rename_og >= 0);
+  opgroup_label(data_og, "rename entries");
+  r = opgroup_abandon(data_og);
+  assert(r >= 0);
+
   err = svn_wc__close_adm_file(outfile,
                                svn_wc_adm_access_path(adm_access),
                                SVN_WC__ADM_ENTRIES, 1, pool);
+
+  r = opgroup_disengage(rename_og);
+  assert(r >= 0);
+  if (og)
+    *og = rename_og;
+  else
+  {
+    r = opgroup_abandon(rename_og);
+    assert(r >= 0);
+  }
 
   svn_wc__adm_access_set_entries(adm_access, TRUE, entries);
   svn_wc__adm_access_set_entries(adm_access, FALSE, NULL);
@@ -1956,6 +1980,13 @@ svn_wc__entries_write(apr_hash_t *entries,
   return err;
 }
 
+svn_error_t *
+svn_wc__entries_write(apr_hash_t *entries,
+                      svn_wc_adm_access_t *adm_access,
+                      apr_pool_t *pool)
+{
+  return svn_wc__entries_write_og(entries, adm_access, NULL, pool);
+}
 
 /* Update an entry NAME in ENTRIES, according to the combination of
    entry data found in ENTRY and masked by MODIFY_FLAGS. If the entry

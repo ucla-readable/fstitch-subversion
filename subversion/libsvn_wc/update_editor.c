@@ -146,6 +146,9 @@ struct dir_baton
   /* The current log file number. */
   int log_number;
 
+  /* The opgroup for the prevous log rename. */
+  opgroup_id_t log_prev_og;
+
   /* The pool in which this baton itself is allocated. */
   apr_pool_t *pool;
 };
@@ -341,6 +344,7 @@ make_dir_baton(const char *path,
   d->added        = added;
   d->bump_info    = bdi;
   d->log_number   = 0;
+  d->log_prev_og  = -1;
 
   apr_pool_cleanup_register(d->pool, d, cleanup_dir_baton,
                             cleanup_dir_baton_child);
@@ -512,6 +516,9 @@ struct file_baton
   /* The repository URL this file will correspond to. */
   const char *new_URL;
 
+  /* The opgroup engaged during data (pre-log rename) changes */
+  opgroup_id_t og;
+
   /* Set if this file is new. */
   svn_boolean_t added;
 
@@ -578,6 +585,10 @@ make_file_baton(struct dir_baton *pb,
   f->bump_info    = pb->bump_info;
   f->added        = adding;
   f->dir_baton    = pb;
+
+  f->og = opgroup_create(0);
+  assert(f->og >= 0);
+  opgroup_label(f->og, "create log");
 
   /* No need to initialize f->digest, since we used pcalloc(). */
 
@@ -1238,6 +1249,8 @@ close_directory(void *dir_baton,
   svn_wc_notify_state_t prop_state = svn_wc_notify_state_unknown;
   apr_array_header_t *entry_props, *wc_props, *regular_props;
   svn_wc_adm_access_t *adm_access;
+  opgroup_id_t data_og, rename_og;
+  int r;
       
   SVN_ERR(svn_categorize_props(db->propchanges, &entry_props, &wc_props,
                                &regular_props, pool));
@@ -1319,13 +1332,33 @@ close_directory(void *dir_baton,
       SVN_ERR(accumulate_wcprops(entry_accum, adm_access,
                                  SVN_WC_ENTRY_THIS_DIR, wc_props, pool));
 
+      data_og = opgroup_create_engage(-1);
+      assert(data_og >= 0);
+	  opgroup_label(data_og, "create log (entries)");
       /* Write our accumulation of log entries into a log file */
-      SVN_ERR(svn_wc__write_log(adm_access, db->log_number, entry_accum, pool));
+      SVN_ERR(svn_wc__write_log_og(adm_access, db->log_number, entry_accum,
+                                   data_og, db->log_prev_og, &rename_og,
+                                   pool));
+      r = opgroup_abandon(data_og);
+      assert(r >= 0);
+      if (db->log_prev_og >= 0)
+      {
+        r = opgroup_abandon(db->log_prev_og);
+        assert(r >= 0);
+      }
+      db->log_prev_og = rename_og;
     }
 
   /* Run the log. */
-  SVN_ERR(svn_wc__run_log(adm_access, db->edit_baton->diff3_cmd, db->pool));
+  SVN_ERR(svn_wc__run_log_og(adm_access, db->edit_baton->diff3_cmd,
+                             db->log_prev_og, db->pool));
   db->log_number = 0;
+  if (db->log_prev_og >= 0)
+  {
+    r = opgroup_abandon(db->log_prev_og);
+    assert(r >= 0);
+    db->log_prev_og = -1;
+  }
   
   /* We're done with this directory, so remove one reference from the
      bump information. This may trigger a number of actions. See
@@ -1440,6 +1473,7 @@ add_or_open_file(const char *path,
   const svn_wc_entry_t *entry;
   svn_node_kind_t kind;
   svn_wc_adm_access_t *adm_access;
+  int r;
 
   /* the file_pool can stick around for a *long* time, so we want to use
      a subpool for any temporary allocations. */
@@ -1450,6 +1484,11 @@ add_or_open_file(const char *path,
      kind.  see issuezilla task #398. */
 
   fb = make_file_baton(pb, path, adding, pool);
+
+  r = opgroup_release(fb->og);
+  assert(r >= 0);
+  r = opgroup_engage(fb->og);
+  assert(r >= 0);
 
   /* It is interesting to note: everything below is just validation. We
      aren't actually doing any "work" or fetching any persistent data. */
@@ -2204,12 +2243,15 @@ close_file(void *file_baton,
 {
   struct file_baton *fb = file_baton;
   struct edit_baton *eb = fb->edit_baton;
+  struct dir_baton *db = fb->dir_baton;
   const char *parent_path;
   apr_array_header_t *propchanges = NULL;
   svn_wc_notify_state_t content_state, prop_state;
   svn_wc_notify_lock_state_t lock_state;
   svn_wc_adm_access_t *adm_access;
   svn_stringbuf_t *log_accum;
+  opgroup_id_t rename_og;
+  int r;
 
   /* window-handler assembles new pristine text in .svn/tmp/text-base/  */
   if (fb->text_changed && text_checksum)
@@ -2250,10 +2292,20 @@ close_file(void *file_baton,
                      pool));
 
   /* Write our accumulation of log entries into a log file */
-  SVN_ERR(svn_wc__write_log(adm_access, fb->dir_baton->log_number,
-                            log_accum, pool));
+  SVN_ERR(svn_wc__write_log_og(adm_access, db->log_number,
+                               log_accum, fb->og, db->log_prev_og, &rename_og,
+                               pool));
+  r = opgroup_abandon(fb->og);
+  assert(r >= 0);
+  fb->og = -1;
+  if (db->log_prev_og >= 0)
+  {
+    r = opgroup_abandon(db->log_prev_og);
+    assert(r >= 0);
+  }
+  db->log_prev_og = rename_og;
 
-  fb->dir_baton->log_number++;
+  db->log_number++;
 
   /* We have one less referrer to the directory's bump information. */
   SVN_ERR(maybe_bump_dir_info(eb, fb->bump_info, pool));

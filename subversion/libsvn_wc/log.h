@@ -20,6 +20,8 @@
 #ifndef SVN_LIBSVN_WC_LOG_H
 #define SVN_LIBSVN_WC_LOG_H
 
+#include <kfs/opgroup.h>
+
 #include <apr_pools.h>
 
 #include "svn_types.h"
@@ -275,6 +277,16 @@ svn_wc__write_log(svn_wc_adm_access_t *adm_access,
                   int log_number, svn_stringbuf_t *log_content,
                   apr_pool_t *pool);
 
+/* svn_wc__write_log with opgroup support.
+ * If ogdata>=0, disengages after writing log.
+ * For each of ogdata and ogold, if >=0, make rename opgroup dependent on it.
+ * Sets *ogrename to rename's new and disengaged opgroup.
+ */
+svn_error_t *
+svn_wc__write_log_og(svn_wc_adm_access_t *adm_access,
+                  int log_number, svn_stringbuf_t *log_content,
+                  opgroup_id_t ogdata, opgroup_id_t ogold,
+                  opgroup_id_t *ogrename, apr_pool_t *pool);
 
 /* Process the instructions in the log file for ADM_ACCESS. 
    DIFF3_CMD is the external differ used by the 'SVN_WC__LOG_MERGE'
@@ -286,6 +298,13 @@ svn_wc__write_log(svn_wc_adm_access_t *adm_access,
 svn_error_t *svn_wc__run_log(svn_wc_adm_access_t *adm_access,
                              const char *diff3_cmd,
                              apr_pool_t *pool);
+
+/* Similar to svn_wc__run_log except that its changes will depend on
+ * last_log_rename_og. */
+svn_error_t *svn_wc__run_log_og(svn_wc_adm_access_t *adm_access,
+                                const char *diff3_cmd,
+                                opgroup_id_t last_log_rename_og,
+                                apr_pool_t *pool);
 
 /* Similar to svn_wc__run_log except that it is assumed that the log
    file has been run before and so some of the log commands may
