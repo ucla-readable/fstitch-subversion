@@ -1,0 +1,60 @@
+we may want to benchmark svn+pg vs svn+fsync
+
+wc assumes:
+- rename proceeds data
+- metadata changes are written in the order they were made (eg rename then log)
+
+svn_io_copy_file() assumes it must atomically create copy even when dst is a tmp file
+
+create an opgroup for each adm/tmp file?
+- this would allow sync_adm_file() and close_adm_file() to make rename
+  depend on the data opgroup
+- but when would the opgroup be engaged? (seems only caller knows exactly)
+  at least for svn up: only one writable file open at a time
+  (unless there no writes() to any of them)
+- what about: open(CREAT|EXCL); close(); open(); write(); close(); rename();
+  will the rename depend on the create? or does this need an opgroup?
+  seems likely that rename will not depend on create for all fses.
+  but it probably does for ufs and ext2...
+  - keep cache of create|excl files and keep their opgroups?
+  - update such callers to create/add_depend opgroups?
+
+svn up with conflict ...
+candidates:
+svn cleanup
+svn add: only updates .svn/entries
+svn ci: updates .svn/entries and adds text-base (using log)
+svn mv: copies text-base, diff?, log runs renames for text-base and file, unlink old file
+svn revert: log copies text-base
+svn merge
+svn switch
+svn prop*
+svn cp
+svn rm
+
+direct entries modifications need rename dep
+
+lock depends on nothing
+first entries rename depends on nothing (recovery fine if lock dne) [open-root]
+log file 0 rename depends on content (recovery fine if first entries rename not made)
+	[apply-textdelta creates base file,
+		textdelta-chunk writes base data,
+		text-delta-end closes base;
+	 close-file does diffs and creates log]
+log file N+1 rename depends on content and N rename (seems necessary, since last log updates entries. maybe only last log needs to depend on preceding logs) (what if only last depends on next to last? would need to play all existing logs, not just until nonexistant log name.)
+log file N play depends on N rename (not on last log because svn cleanup replays if last log not there)
+	[]
+unlink last log file depends on all log runs
+	[close-dir]
+unlink log file N-1 depends on unlink N (optimize by removing first and then all others?)
+last entries update depends on unlinks (or is last log run sufficient?)
+	[close-edit]
+unlink lock depends on nothing (seems fine)
+	[]
+
+do log run renames need to depend on their data? yes if src is used in log run.
+  (will log rerun unconditionally recreate the target file?)
+
+need to depend on lock create and make lock rm depend on work? probably not.
+
+easy, always-on og around textdeltas will depend on tmp tmp files
