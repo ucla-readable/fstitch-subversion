@@ -254,24 +254,24 @@ AC_DEFINE_UNQUOTED(SVN_FS_WANT_DB_MINOR, $SVN_FS_WANT_DB_MINOR,
 AC_DEFINE_UNQUOTED(SVN_FS_WANT_DB_PATCH, $SVN_FS_WANT_DB_PATCH,
                    [The desired patch version for the Berkeley DB])
 
-# opgroups
-AC_ARG_WITH(opgroup-inc,
-    AS_HELP_STRING([--with-opgroup-inc=PATH],
-        [Specify the path to the directory containing kfs/opgroup.h]),
-    OPGROUP_INC="-I$withval", OPGROUP_INC=)
-AC_ARG_WITH(opgroup-lib,
-    AS_HELP_STRING([--with-opgroup-lib=PATH],
-        [Specify the path to the directory containing libopgroup.so]),
-    OPGROUP_LIB="-L$withval", OPGROUP_LIB=)
-LIBOPGROUP_CPPFLAGS="$OPGROUP_INC"
-LIBOPGROUP_LIBS="$OPGROUP_LIB -lopgroup"
+# patchgroups
+AC_ARG_WITH(patchgroup-inc,
+    AS_HELP_STRING([--with-patchgroup-inc=PATH],
+        [Specify the path to the directory containing fscore/patchgroup.h]),
+    PATCHGROUP_INC="-I$withval", PATCHGROUP_INC=)
+AC_ARG_WITH(patchgroup-lib,
+    AS_HELP_STRING([--with-patchgroup-lib=PATH],
+        [Specify the path to the directory containing libpatchgroup.so]),
+    PATCHGROUP_LIB="-L$withval", PATCHGROUP_LIB=)
+LIBPATCHGROUP_CPPFLAGS="$PATCHGROUP_INC"
+LIBPATCHGROUP_LIBS="$PATCHGROUP_LIB -lpatchgroup"
 save_cppflags="$CPPFLAGS"
-CPPFLAGS="$CPPFLAGS $LIBOPGROUP_CPPFLAGS"
-AC_CHECK_HEADER([kfs/opgroup.h], , AC_MSG_ERROR([could not find opgroup.h]))
+CPPFLAGS="$CPPFLAGS $LIBPATCHGROUP_CPPFLAGS"
+AC_CHECK_HEADER([fscore/patchgroup.h], , AC_MSG_ERROR([could not find patchgroup.h]))
 CPPFLAGS="$save_cppflags"
-AC_CHECK_LIB([opgroup], [opgroup_create], , AC_MSG_ERROR([could not link against opgroup library]), ${LIBOPGROUP_LIBS})
-AC_SUBST([LIBOPGROUP_CPPFLAGS])
-LIBS="$LIBS $LIBOPGROUP_LIBS"
+AC_CHECK_LIB([patchgroup], [patchgroup_create], , AC_MSG_ERROR([could not link against patchgroup library]), ${LIBPATCHGROUP_LIBS})
+AC_SUBST([LIBPATCHGROUP_CPPFLAGS])
+LIBS="$LIBS $LIBPATCHGROUP_LIBS"
 
 dnl Mac OS KeyChain -------------------
 

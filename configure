@@ -865,7 +865,7 @@ SVN_LT_CXXTAG
 LT_LDFLAGS
 LT_NO_UNDEFINED
 TRANG
-LIBOPGROUP_CPPFLAGS
+LIBPATCHGROUP_CPPFLAGS
 MSGFMT
 MSGMERGE
 XGETTEXT
@@ -1578,10 +1578,10 @@ Optional Packages:
                           `=PATH' part completely, the configure script will
                           search for Berkeley DB in a number of standard
                           places.
-  --with-opgroup-inc=PATH Specify the path to the directory containing
-                          kfs/opgroup.h
-  --with-opgroup-lib=PATH Specify the path to the directory containing
-                          libopgroup.so
+  --with-patchgroup-inc=PATH Specify the path to the directory containing
+                          fscore/patchgroup.h
+  --with-patchgroup-lib=PATH Specify the path to the directory containing
+                          libpatchgroup.so
   --with-ssl              This option does NOT affect the Subversion build
                           process in any way. It enables OpenSSL support in
                           the Neon library. If and only if you are building
@@ -21719,39 +21719,39 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-# opgroups
+# patchgroups
 
-# Check whether --with-opgroup-inc was given.
-if test "${with_opgroup_inc+set}" = set; then
-  withval=$with_opgroup_inc; OPGROUP_INC="-I$withval"
+# Check whether --with-patchgroup-inc was given.
+if test "${with_patchgroup_inc+set}" = set; then
+  withval=$with_patchgroup_inc; PATCHGROUP_INC="-I$withval"
 else
-  OPGROUP_INC=
+  PATCHGROUP_INC=
 fi
 
 
-# Check whether --with-opgroup-lib was given.
-if test "${with_opgroup_lib+set}" = set; then
-  withval=$with_opgroup_lib; OPGROUP_LIB="-L$withval"
+# Check whether --with-patchgroup-lib was given.
+if test "${with_patchgroup_lib+set}" = set; then
+  withval=$with_patchgroup_lib; PATCHGROUP_LIB="-L$withval"
 else
-  OPGROUP_LIB=
+  PATCHGROUP_LIB=
 fi
 
-LIBOPGROUP_CPPFLAGS="$OPGROUP_INC"
-LIBOPGROUP_LIBS="$OPGROUP_LIB -lopgroup"
+LIBPATCHGROUP_CPPFLAGS="$PATCHGROUP_INC"
+LIBPATCHGROUP_LIBS="$PATCHGROUP_LIB -lpatchgroup"
 save_cppflags="$CPPFLAGS"
-CPPFLAGS="$CPPFLAGS $LIBOPGROUP_CPPFLAGS"
-if test "${ac_cv_header_kfs_opgroup_h+set}" = set; then
-  { echo "$as_me:$LINENO: checking for kfs/opgroup.h" >&5
-echo $ECHO_N "checking for kfs/opgroup.h... $ECHO_C" >&6; }
-if test "${ac_cv_header_kfs_opgroup_h+set}" = set; then
+CPPFLAGS="$CPPFLAGS $LIBPATCHGROUP_CPPFLAGS"
+if test "${ac_cv_header_fscore_patchgroup_h+set}" = set; then
+  { echo "$as_me:$LINENO: checking for fscore/patchgroup.h" >&5
+echo $ECHO_N "checking for fscore/patchgroup.h... $ECHO_C" >&6; }
+if test "${ac_cv_header_fscore_patchgroup_h+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 fi
-{ echo "$as_me:$LINENO: result: $ac_cv_header_kfs_opgroup_h" >&5
-echo "${ECHO_T}$ac_cv_header_kfs_opgroup_h" >&6; }
+{ echo "$as_me:$LINENO: result: $ac_cv_header_fscore_patchgroup_h" >&5
+echo "${ECHO_T}$ac_cv_header_fscore_patchgroup_h" >&6; }
 else
   # Is the header compilable?
-{ echo "$as_me:$LINENO: checking kfs/opgroup.h usability" >&5
-echo $ECHO_N "checking kfs/opgroup.h usability... $ECHO_C" >&6; }
+{ echo "$as_me:$LINENO: checking fscore/patchgroup.h usability" >&5
+echo $ECHO_N "checking fscore/patchgroup.h usability... $ECHO_C" >&6; }
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -21759,7 +21759,7 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 $ac_includes_default
-#include <kfs/opgroup.h>
+#include <fscore/patchgroup.h>
 _ACEOF
 rm -f conftest.$ac_objext
 if { (ac_try="$ac_compile"
@@ -21808,15 +21808,15 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 echo "${ECHO_T}$ac_header_compiler" >&6; }
 
 # Is the header present?
-{ echo "$as_me:$LINENO: checking kfs/opgroup.h presence" >&5
-echo $ECHO_N "checking kfs/opgroup.h presence... $ECHO_C" >&6; }
+{ echo "$as_me:$LINENO: checking fscore/patchgroup.h presence" >&5
+echo $ECHO_N "checking fscore/patchgroup.h presence... $ECHO_C" >&6; }
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
-#include <kfs/opgroup.h>
+#include <fscore/patchgroup.h>
 _ACEOF
 if { (ac_try="$ac_cpp conftest.$ac_ext"
 case "(($ac_try" in
@@ -21856,25 +21856,25 @@ echo "${ECHO_T}$ac_header_preproc" >&6; }
 # So?  What about this header?
 case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
   yes:no: )
-    { echo "$as_me:$LINENO: WARNING: kfs/opgroup.h: accepted by the compiler, rejected by the preprocessor!" >&5
-echo "$as_me: WARNING: kfs/opgroup.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
-    { echo "$as_me:$LINENO: WARNING: kfs/opgroup.h: proceeding with the compiler's result" >&5
-echo "$as_me: WARNING: kfs/opgroup.h: proceeding with the compiler's result" >&2;}
+    { echo "$as_me:$LINENO: WARNING: fscore/patchgroup.h: accepted by the compiler, rejected by the preprocessor!" >&5
+echo "$as_me: WARNING: fscore/patchgroup.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { echo "$as_me:$LINENO: WARNING: fscore/patchgroup.h: proceeding with the compiler's result" >&5
+echo "$as_me: WARNING: fscore/patchgroup.h: proceeding with the compiler's result" >&2;}
     ac_header_preproc=yes
     ;;
   no:yes:* )
-    { echo "$as_me:$LINENO: WARNING: kfs/opgroup.h: present but cannot be compiled" >&5
-echo "$as_me: WARNING: kfs/opgroup.h: present but cannot be compiled" >&2;}
-    { echo "$as_me:$LINENO: WARNING: kfs/opgroup.h:     check for missing prerequisite headers?" >&5
-echo "$as_me: WARNING: kfs/opgroup.h:     check for missing prerequisite headers?" >&2;}
-    { echo "$as_me:$LINENO: WARNING: kfs/opgroup.h: see the Autoconf documentation" >&5
-echo "$as_me: WARNING: kfs/opgroup.h: see the Autoconf documentation" >&2;}
-    { echo "$as_me:$LINENO: WARNING: kfs/opgroup.h:     section \"Present But Cannot Be Compiled\"" >&5
-echo "$as_me: WARNING: kfs/opgroup.h:     section \"Present But Cannot Be Compiled\"" >&2;}
-    { echo "$as_me:$LINENO: WARNING: kfs/opgroup.h: proceeding with the preprocessor's result" >&5
-echo "$as_me: WARNING: kfs/opgroup.h: proceeding with the preprocessor's result" >&2;}
-    { echo "$as_me:$LINENO: WARNING: kfs/opgroup.h: in the future, the compiler will take precedence" >&5
-echo "$as_me: WARNING: kfs/opgroup.h: in the future, the compiler will take precedence" >&2;}
+    { echo "$as_me:$LINENO: WARNING: fscore/patchgroup.h: present but cannot be compiled" >&5
+echo "$as_me: WARNING: fscore/patchgroup.h: present but cannot be compiled" >&2;}
+    { echo "$as_me:$LINENO: WARNING: fscore/patchgroup.h:     check for missing prerequisite headers?" >&5
+echo "$as_me: WARNING: fscore/patchgroup.h:     check for missing prerequisite headers?" >&2;}
+    { echo "$as_me:$LINENO: WARNING: fscore/patchgroup.h: see the Autoconf documentation" >&5
+echo "$as_me: WARNING: fscore/patchgroup.h: see the Autoconf documentation" >&2;}
+    { echo "$as_me:$LINENO: WARNING: fscore/patchgroup.h:     section \"Present But Cannot Be Compiled\"" >&5
+echo "$as_me: WARNING: fscore/patchgroup.h:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { echo "$as_me:$LINENO: WARNING: fscore/patchgroup.h: proceeding with the preprocessor's result" >&5
+echo "$as_me: WARNING: fscore/patchgroup.h: proceeding with the preprocessor's result" >&2;}
+    { echo "$as_me:$LINENO: WARNING: fscore/patchgroup.h: in the future, the compiler will take precedence" >&5
+echo "$as_me: WARNING: fscore/patchgroup.h: in the future, the compiler will take precedence" >&2;}
     ( cat <<\_ASBOX
 ## -------------------------------------------- ##
 ## Report this to http://subversion.tigris.org/ ##
@@ -21883,35 +21883,35 @@ _ASBOX
      ) | sed "s/^/$as_me: WARNING:     /" >&2
     ;;
 esac
-{ echo "$as_me:$LINENO: checking for kfs/opgroup.h" >&5
-echo $ECHO_N "checking for kfs/opgroup.h... $ECHO_C" >&6; }
-if test "${ac_cv_header_kfs_opgroup_h+set}" = set; then
+{ echo "$as_me:$LINENO: checking for fscore/patchgroup.h" >&5
+echo $ECHO_N "checking for fscore/patchgroup.h... $ECHO_C" >&6; }
+if test "${ac_cv_header_fscore_patchgroup_h+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
-  ac_cv_header_kfs_opgroup_h=$ac_header_preproc
+  ac_cv_header_fscore_patchgroup_h=$ac_header_preproc
 fi
-{ echo "$as_me:$LINENO: result: $ac_cv_header_kfs_opgroup_h" >&5
-echo "${ECHO_T}$ac_cv_header_kfs_opgroup_h" >&6; }
+{ echo "$as_me:$LINENO: result: $ac_cv_header_fscore_patchgroup_h" >&5
+echo "${ECHO_T}$ac_cv_header_fscore_patchgroup_h" >&6; }
 
 fi
-if test $ac_cv_header_kfs_opgroup_h = yes; then
+if test $ac_cv_header_fscore_patchgroup_h = yes; then
   :
 else
-  { { echo "$as_me:$LINENO: error: could not find opgroup.h" >&5
-echo "$as_me: error: could not find opgroup.h" >&2;}
+  { { echo "$as_me:$LINENO: error: could not find patchgroup.h" >&5
+echo "$as_me: error: could not find patchgroup.h" >&2;}
    { (exit 1); exit 1; }; }
 fi
 
 
 CPPFLAGS="$save_cppflags"
 
-{ echo "$as_me:$LINENO: checking for opgroup_create in -lopgroup" >&5
-echo $ECHO_N "checking for opgroup_create in -lopgroup... $ECHO_C" >&6; }
-if test "${ac_cv_lib_opgroup_opgroup_create+set}" = set; then
+{ echo "$as_me:$LINENO: checking for patchgroup_create in -lpatchgroup" >&5
+echo $ECHO_N "checking for patchgroup_create in -lpatchgroup... $ECHO_C" >&6; }
+if test "${ac_cv_lib_patchgroup_patchgroup_create+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-lopgroup ${LIBOPGROUP_LIBS} $LIBS"
+LIBS="-lpatchgroup ${LIBPATCHGROUP_LIBS} $LIBS"
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -21925,11 +21925,11 @@ cat >>conftest.$ac_ext <<_ACEOF
 #ifdef __cplusplus
 extern "C"
 #endif
-char opgroup_create ();
+char patchgroup_create ();
 int
 main ()
 {
-return opgroup_create ();
+return patchgroup_create ();
   ;
   return 0;
 }
@@ -21968,35 +21968,35 @@ eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_lib_opgroup_opgroup_create=yes
+  ac_cv_lib_patchgroup_patchgroup_create=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-	ac_cv_lib_opgroup_opgroup_create=no
+	ac_cv_lib_patchgroup_patchgroup_create=no
 fi
 
 rm -f core conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ echo "$as_me:$LINENO: result: $ac_cv_lib_opgroup_opgroup_create" >&5
-echo "${ECHO_T}$ac_cv_lib_opgroup_opgroup_create" >&6; }
-if test $ac_cv_lib_opgroup_opgroup_create = yes; then
+{ echo "$as_me:$LINENO: result: $ac_cv_lib_patchgroup_patchgroup_create" >&5
+echo "${ECHO_T}$ac_cv_lib_patchgroup_patchgroup_create" >&6; }
+if test $ac_cv_lib_patchgroup_patchgroup_create = yes; then
   cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBOPGROUP 1
+#define HAVE_LIBPATCHGROUP 1
 _ACEOF
 
-  LIBS="-lopgroup $LIBS"
+  LIBS="-lpatchgroup $LIBS"
 
 else
-  { { echo "$as_me:$LINENO: error: could not link against opgroup library" >&5
-echo "$as_me: error: could not link against opgroup library" >&2;}
+  { { echo "$as_me:$LINENO: error: could not link against patchgroup library" >&5
+echo "$as_me: error: could not link against patchgroup library" >&2;}
    { (exit 1); exit 1; }; }
 fi
 
 
-LIBS="$LIBS $LIBOPGROUP_LIBS"
+LIBS="$LIBS $LIBPATCHGROUP_LIBS"
 
 
 # Check whether --enable-keychain was given.
@@ -27487,7 +27487,7 @@ SVN_LT_CXXTAG!$SVN_LT_CXXTAG$ac_delim
 LT_LDFLAGS!$LT_LDFLAGS$ac_delim
 LT_NO_UNDEFINED!$LT_NO_UNDEFINED$ac_delim
 TRANG!$TRANG$ac_delim
-LIBOPGROUP_CPPFLAGS!$LIBOPGROUP_CPPFLAGS$ac_delim
+LIBPATCHGROUP_CPPFLAGS!$LIBPATCHGROUP_CPPFLAGS$ac_delim
 MSGFMT!$MSGFMT$ac_delim
 MSGMERGE!$MSGMERGE$ac_delim
 XGETTEXT!$XGETTEXT$ac_delim

@@ -6,18 +6,18 @@ wc assumes:
 
 svn_io_copy_file() assumes it must atomically create copy even when dst is a tmp file
 
-create an opgroup for each adm/tmp file?
+create a patchgroup for each adm/tmp file?
 - this would allow sync_adm_file() and close_adm_file() to make rename
-  depend on the data opgroup
-- but when would the opgroup be engaged? (seems only caller knows exactly)
+  depend on the data patchgroup
+- but when would the patchgroup be engaged? (seems only caller knows exactly)
   at least for svn up: only one writable file open at a time
   (unless there no writes() to any of them)
 - what about: open(CREAT|EXCL); close(); open(); write(); close(); rename();
-  will the rename depend on the create? or does this need an opgroup?
+  will the rename depend on the create? or does this need a patchgroup?
   seems likely that rename will not depend on create for all fses.
   but it probably does for ufs and ext2...
-  - keep cache of create|excl files and keep their opgroups?
-  - update such callers to create/add_depend opgroups?
+  - keep cache of create|excl files and keep their patchgroups?
+  - update such callers to create/add_depend patchgroups?
 
 svn up with conflict ...
 candidates:
